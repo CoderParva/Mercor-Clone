@@ -10,7 +10,10 @@ const { notFound, errorHandler } = require('./middleware/errorHandler');
 
 const app = express();
 
-app.use(cors());
+const corsOptions = process.env.CORS_ORIGIN
+  ? { origin: process.env.CORS_ORIGIN }
+  : {};
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // Basic brute-force protection on auth endpoints
