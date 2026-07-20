@@ -13,10 +13,7 @@
 [![Jest](https://img.shields.io/badge/Tested_with-Jest-C21325?style=flat-square&logo=jest&logoColor=white)](https://jestjs.io/)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](#license)
 
-**[Live Demo](#)** &nbsp;·&nbsp; **[Setup Guide](#getting-started)** &nbsp;·&nbsp; **[Tests](#testing)**
-
-> Live demo link coming soon — deployment in progress.
-
+**[Live Demo](https://mercor-clone-1.onrender.com)** &nbsp;·&nbsp; **[Setup Guide](#getting-started)** &nbsp;·&nbsp; **[Tests](#testing)**
 </div>
 
 ---
