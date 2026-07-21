@@ -2,7 +2,7 @@ const express = require('express');
 const Interview = require('../models/Interview');
 const Job = require('../models/Job');
 const { protect, requireRole } = require('../middleware/auth');
-const { generateQuestions, scoreInterview } = require('../services/aiInterview');
+const { generateQuestions, generateFollowUp, scoreInterview } = require('../services/aiInterview');
 
 const router = express.Router();
 
@@ -25,10 +25,11 @@ router.post('/start', protect, requireRole('candidate'), async (req, res, next) 
   }
 });
 
-// PUT /api/interviews/:id/submit - candidate submits answers, gets AI score back
-router.put('/:id/submit', protect, requireRole('candidate'), async (req, res, next) => {
+// PUT /api/interviews/:id/answer - candidate submits one answer at a time (main question or follow-up)
+// Walks: main Q1 -> follow-up Q1 -> main Q2 -> follow-up Q2 -> ... -> final score
+router.put('/:id/answer', protect, requireRole('candidate'), async (req, res, next) => {
   try {
-    const { answers } = req.body; // array of strings, same order as questions
+    const { answer } = req.body;
     const interview = await Interview.findById(req.params.id).populate('job');
     if (!interview) return res.status(404).json({ message: 'Interview not found' });
     if (String(interview.candidate) !== String(req.user._id)) {
@@ -37,14 +38,42 @@ router.put('/:id/submit', protect, requireRole('candidate'), async (req, res, ne
     if (interview.status === 'completed') {
       return res.status(409).json({ message: 'Interview already completed' });
     }
-    if (!Array.isArray(answers) || answers.length !== interview.questions.length) {
-      return res.status(400).json({ message: `Expected ${interview.questions.length} answers` });
+    if (typeof answer !== 'string' || !answer.trim()) {
+      return res.status(400).json({ message: 'An answer is required' });
     }
 
-    interview.questions.forEach((q, i) => {
-      q.answer = (answers[i] || '').trim();
-    });
+    const currentQ = interview.questions[interview.currentIndex];
+    if (!currentQ) {
+      return res.status(400).json({ message: 'Invalid interview state' });
+    }
 
+    if (interview.phase === 'main') {
+      // Save the main answer, generate a targeted follow-up question
+      currentQ.answer = answer.trim();
+      const followUp = await generateFollowUp(interview.job, currentQ.question, currentQ.answer);
+      currentQ.followUpQuestion = followUp;
+      interview.phase = 'followup';
+      await interview.save();
+      return res.json({ done: false, phase: 'followup', prompt: followUp, interview });
+    }
+
+    // phase === 'followup': save follow-up answer, advance to next question or finish
+    currentQ.followUpAnswer = answer.trim();
+    const nextIndex = interview.currentIndex + 1;
+
+    if (nextIndex < interview.questions.length) {
+      interview.currentIndex = nextIndex;
+      interview.phase = 'main';
+      await interview.save();
+      return res.json({
+        done: false,
+        phase: 'main',
+        prompt: interview.questions[nextIndex].question,
+        interview,
+      });
+    }
+
+    // All questions + follow-ups answered — score the whole interview
     const { score, feedback, perQuestion } = await scoreInterview(interview.job, interview.questions);
     interview.score = score;
     interview.feedback = feedback;
@@ -55,9 +84,10 @@ router.put('/:id/submit', protect, requireRole('candidate'), async (req, res, ne
       }
     });
     interview.status = 'completed';
+    interview.phase = 'done';
     await interview.save();
 
-    res.json({ interview });
+    res.json({ done: true, interview });
   } catch (err) {
     next(err);
   }

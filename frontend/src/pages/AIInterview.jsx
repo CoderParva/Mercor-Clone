@@ -18,9 +18,13 @@ export default function AIInterview() {
   const [permissionError, setPermissionError] = useState('');
   const [cameraReady, setCameraReady] = useState(false);
 
-  const [interview, setInterview] = useState(null);
-  const [questionIndex, setQuestionIndex] = useState(0);
-  const [answers, setAnswers] = useState([]);
+  const [interviewId, setInterviewId] = useState(null);
+  const [totalQuestions, setTotalQuestions] = useState(0);
+  const [mainIndex, setMainIndex] = useState(0); // which main question (0-based) we're on
+  const [phase, setPhase] = useState('main'); // 'main' | 'followup' — which prompt we're currently answering
+  const [currentPrompt, setCurrentPrompt] = useState('');
+  const [roundsCompleted, setRoundsCompleted] = useState(0); // for progress bar (main+followup each count as 1)
+
   const [liveTranscript, setLiveTranscript] = useState('');
   const [manualAnswer, setManualAnswer] = useState('');
   const [result, setResult] = useState(null);
@@ -93,13 +97,12 @@ export default function AIInterview() {
     setStage('listening');
   }, []);
 
-  const askQuestion = useCallback(
-    async (index, currentInterview) => {
+  const askPrompt = useCallback(
+    async (promptText) => {
       setStage('asking');
       setLiveTranscript('');
       setManualAnswer('');
-      const questionText = currentInterview.questions[index].question;
-      await speak(questionText);
+      await speak(promptText);
       startListening();
     },
     [startListening]
@@ -109,10 +112,14 @@ export default function AIInterview() {
     setStarting(true);
     try {
       const res = await api.post('/interviews/start', { jobId });
-      setInterview(res.data.interview);
-      setAnswers(new Array(res.data.interview.questions.length).fill(''));
-      setQuestionIndex(0);
-      askQuestion(0, res.data.interview);
+      const interview = res.data.interview;
+      setInterviewId(interview._id);
+      setTotalQuestions(interview.questions.length);
+      setMainIndex(0);
+      setPhase('main');
+      setRoundsCompleted(0);
+      setCurrentPrompt(interview.questions[0].question);
+      askPrompt(interview.questions[0].question);
     } catch (err) {
       showToast(err.response?.data?.message || 'Failed to start interview', 'error');
     } finally {
@@ -120,7 +127,7 @@ export default function AIInterview() {
     }
   };
 
-  const finishAnswering = () => {
+  const finishAnswering = async () => {
     recognitionRef.current?.stop();
     const spokenAnswer = (finalTranscriptRef.current || liveTranscript).trim();
     const finalAnswer = speechSupported ? spokenAnswer : manualAnswer.trim();
@@ -130,28 +137,27 @@ export default function AIInterview() {
       return;
     }
 
-    const nextAnswers = [...answers];
-    nextAnswers[questionIndex] = finalAnswer;
-    setAnswers(nextAnswers);
-
-    const nextIndex = questionIndex + 1;
-    if (nextIndex < interview.questions.length) {
-      setQuestionIndex(nextIndex);
-      askQuestion(nextIndex, interview);
-    } else {
-      submitInterview(nextAnswers);
-    }
-  };
-
-  const submitInterview = async (finalAnswers) => {
     setStage('submitting');
     try {
-      const res = await api.put(`/interviews/${interview._id}/submit`, { answers: finalAnswers });
-      setResult(res.data.interview);
-      setStage('result');
-      streamRef.current?.getTracks().forEach((t) => t.stop());
+      const res = await api.put(`/interviews/${interviewId}/answer`, { answer: finalAnswer });
+      const data = res.data;
+      setRoundsCompleted((r) => r + 1);
+
+      if (data.done) {
+        setResult(data.interview);
+        setStage('result');
+        streamRef.current?.getTracks().forEach((t) => t.stop());
+        return;
+      }
+
+      setPhase(data.phase);
+      setCurrentPrompt(data.prompt);
+      if (data.phase === 'main') {
+        setMainIndex((i) => i + 1);
+      }
+      askPrompt(data.prompt);
     } catch (err) {
-      showToast(err.response?.data?.message || 'Failed to submit interview', 'error');
+      showToast(err.response?.data?.message || 'Failed to submit answer', 'error');
       setStage('listening');
     }
   };
@@ -159,12 +165,14 @@ export default function AIInterview() {
   if (!job) return <p className="center-msg">Loading...</p>;
 
   const showBigPreview = stage === 'setup';
+  const totalRounds = totalQuestions * 2;
+  const progressPct = totalRounds > 0 ? (roundsCompleted / totalRounds) * 100 : 0;
 
   return (
     <div className="page ai-interview-page">
       <h1>AI Interview — {job.title}</h1>
 
-      {(stage === 'setup' || stage === 'asking' || stage === 'listening') && (
+      {(stage === 'setup' || stage === 'asking' || stage === 'listening' || stage === 'submitting') && (
         <div className={showBigPreview ? 'interview-setup-grid' : 'interview-live-grid'}>
           <div className={showBigPreview ? 'camera-preview' : 'camera-preview small'}>
             <video ref={videoRef} autoPlay muted playsInline />
@@ -179,9 +187,9 @@ export default function AIInterview() {
           {stage === 'setup' && (
             <div className="interview-setup-side">
               <p>
-                This is a spoken AI interview: you'll hear each question read aloud, then answer by
-                speaking — your response is transcribed live and scored automatically at the end.
-                Camera and microphone access is required to begin.
+                This is an adaptive spoken AI interview: after each question, the AI asks a
+                follow-up based on what you actually said — to probe deeper and check consistency —
+                before moving to the next question. Camera and microphone access is required to begin.
               </p>
               {!speechSupported && (
                 <p className="status-msg error">
@@ -208,21 +216,24 @@ export default function AIInterview() {
             </div>
           )}
 
-          {(stage === 'asking' || stage === 'listening') && interview && (
+          {(stage === 'asking' || stage === 'listening' || stage === 'submitting') && (
             <div className="interview-live-main">
               <div className="interview-progress-bar">
-                <div
-                  className="interview-progress-fill"
-                  style={{ width: `${((questionIndex + (stage === 'listening' ? 0.5 : 0)) / interview.questions.length) * 100}%` }}
-                />
+                <div className="interview-progress-fill" style={{ width: `${progressPct}%` }} />
               </div>
               <span className="section-label">
-                Question {questionIndex + 1} of {interview.questions.length}
+                Question {mainIndex + 1} of {totalQuestions}
+                {phase === 'followup' && ' — Follow-up'}
               </span>
               <AIAvatar mode={stage === 'asking' ? 'speaking' : 'listening'} />
-              <p className="interview-question-text">{interview.questions[questionIndex].question}</p>
+              <p className="interview-question-text">
+                {phase === 'followup' && <span className="followup-tag">Follow-up</span>}
+                {currentPrompt}
+              </p>
 
-              {speechSupported ? (
+              {stage === 'submitting' ? (
+                <p className="center-msg">Thinking of a follow-up...</p>
+              ) : speechSupported ? (
                 <div className="live-transcript-box">
                   <p className="resume-hint">Your answer (live transcript):</p>
                   <p>{liveTranscript || <em>Start speaking...</em>}</p>
@@ -237,16 +248,16 @@ export default function AIInterview() {
                 />
               )}
 
-              <button className="btn primary" onClick={finishAnswering} disabled={stage === 'asking'}>
-                {questionIndex + 1 < interview.questions.length ? 'Finish Answer & Continue' : 'Finish Answer & Submit'}
+              <button
+                className="btn primary"
+                onClick={finishAnswering}
+                disabled={stage === 'asking' || stage === 'submitting'}
+              >
+                {stage === 'submitting' ? 'Processing...' : 'Finish Answer & Continue'}
               </button>
             </div>
           )}
         </div>
-      )}
-
-      {stage === 'submitting' && (
-        <p className="center-msg">Scoring your interview...</p>
       )}
 
       {stage === 'result' && result && (
@@ -267,6 +278,11 @@ export default function AIInterview() {
                     <span className="interview-score-badge">{q.score}/10</span>
                   </div>
                   <p>{q.feedback}</p>
+                  {q.followUpQuestion && (
+                    <p className="breakdown-followup">
+                      <em>Follow-up: {q.followUpQuestion}</em>
+                    </p>
+                  )}
                 </div>
               ))}
             </div>

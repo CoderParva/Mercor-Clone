@@ -1,5 +1,3 @@
-// Uses Groq's free, OpenAI-compatible chat completions API.
-// Get a free key (no credit card) at https://console.groq.com
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const MODEL = 'llama-3.3-70b-versatile';
 
@@ -74,13 +72,42 @@ Respond with ONLY a JSON array of 4 question strings, nothing else. Example form
   return questions;
 }
 
-// Scores a completed Q&A transcript against the job, returns { score, feedback, perQuestion }.
+// Generates a targeted follow-up question probing the depth/consistency of a specific answer.
+async function generateFollowUp(job, originalQuestion, answer) {
+  const prompt = `You are a spoken-interview interviewer for this role:
+
+Title: ${job.title}
+Description: ${job.description}
+
+You just asked: "${originalQuestion}"
+The candidate answered: "${answer}"
+
+Generate ONE natural follow-up question that:
+- Probes deeper into a specific detail they mentioned, OR
+- Checks whether their answer is genuine/consistent (e.g. asks for a specific number, name, or detail that would be hard to fabricate on the spot), OR
+- Asks them to clarify something vague or generic in their answer.
+- Must be answerable in 20-60 seconds of spoken explanation — no diagrams or code.
+- If their answer was extremely thin (e.g. "I don't know" or one word), ask them to elaborate on the core topic instead.
+
+Respond with ONLY the follow-up question text, nothing else — no quotes, no JSON, no preamble.`;
+
+  const text = await callGroq(prompt);
+  return text.trim().replace(/^["']|["']$/g, '');
+}
+
+// Scores a completed Q&A transcript (including follow-ups) against the job.
 async function scoreInterview(job, qaPairs) {
   const transcript = qaPairs
-    .map((qa, i) => `Q${i + 1}: ${qa.question}\nA${i + 1}: ${qa.answer}`)
+    .map((qa, i) => {
+      let block = `Q${i + 1}: ${qa.question}\nA${i + 1}: ${qa.answer}`;
+      if (qa.followUpQuestion) {
+        block += `\nFollow-up: ${qa.followUpQuestion}\nFollow-up Answer: ${qa.followUpAnswer || '(no answer given)'}`;
+      }
+      return block;
+    })
     .join('\n\n');
 
-  const prompt = `You are evaluating a candidate's spoken interview answers for this role:
+  const prompt = `You are evaluating a candidate's spoken interview answers for this role, including follow-up questions used to probe depth and check consistency:
 
 Title: ${job.title}
 Description: ${job.description}
@@ -88,18 +115,20 @@ Description: ${job.description}
 Transcript:
 ${transcript}
 
-Score EACH answer individually from 1-10, with a short 1-sentence note per answer, THEN give an overall score and summary.
+For each main question, consider BOTH the initial answer and the follow-up exchange together. If the follow-up answer contradicts, is vague, or fails to substantiate the original answer, reflect that with a lower score and mention it in the note. If the follow-up answer confirms and deepens the original answer, score higher.
+
+Score EACH main question (with its follow-up) from 1-10, with a short 1-sentence note, THEN give an overall score and summary.
 
 Respond with ONLY valid JSON in this exact format, nothing else:
 {
   "perQuestion": [
-    {"score": <1-10>, "note": "<one sentence>"},
+    {"score": <1-10>, "note": "<one sentence, mention if follow-up confirmed or contradicted the original answer>"},
     {"score": <1-10>, "note": "<one sentence>"},
     {"score": <1-10>, "note": "<one sentence>"},
     {"score": <1-10>, "note": "<one sentence>"}
   ],
   "overallScore": <1-10>,
-  "overallFeedback": "<2-3 sentence summary of strengths and gaps across all answers>"
+  "overallFeedback": "<2-3 sentence summary of strengths, gaps, and any consistency concerns found via follow-ups>"
 }`;
 
   const text = await callGroq(prompt);
@@ -121,4 +150,4 @@ Respond with ONLY valid JSON in this exact format, nothing else:
   };
 }
 
-module.exports = { generateQuestions, scoreInterview };
+module.exports = { generateQuestions, generateFollowUp, scoreInterview };

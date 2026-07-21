@@ -315,6 +315,7 @@ a { text-decoration: none; color: inherit; }
 .breakdown-row-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.75rem; margin-bottom: 0.4rem; }
 .breakdown-row-top strong { font-size: 0.92rem; font-weight: 600; }
 .breakdown-row p { margin: 0; color: var(--muted); font-size: 0.88rem; }
+.breakdown-followup { margin-top: 0.4rem !important; padding-top: 0.4rem; border-top: 1px dashed var(--border); font-size: 0.82rem !important; }
 
 .interview-score-badge {
   display: inline-block; padding: 0.25rem 0.65rem; border-radius: 999px; font-size: 0.8rem; font-weight: 700;
@@ -345,6 +346,11 @@ a { text-decoration: none; color: inherit; }
 
 .interview-live-main { display: flex; flex-direction: column; gap: 1rem; }
 .interview-question-text { font-size: 1.2rem; font-weight: 600; line-height: 1.4; }
+.followup-tag {
+  display: inline-block; background: var(--accent-soft); color: var(--accent); font-size: 0.7rem;
+  font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; padding: 0.15rem 0.5rem;
+  border-radius: 999px; margin-right: 0.5rem; vertical-align: middle;
+}
 
 .interview-progress-bar { height: 6px; background: var(--border); border-radius: 999px; overflow: hidden; }
 .interview-progress-fill { height: 100%; background: var(--accent); transition: width 0.4s ease; }
