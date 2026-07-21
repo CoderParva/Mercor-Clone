@@ -6,10 +6,13 @@ const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
 const jobRoutes = require('./routes/jobs');
 const applicationRoutes = require('./routes/applications');
+const interviewRoutes = require('./routes/interviews');
 const { notFound, errorHandler } = require('./middleware/errorHandler');
 
 const app = express();
 
+// In production, set CORS_ORIGIN to your deployed frontend's URL (e.g. https://your-app.onrender.com).
+// Left unset, CORS allows all origins — fine for local dev, not recommended once deployed.
 const corsOptions = process.env.CORS_ORIGIN
   ? { origin: process.env.CORS_ORIGIN }
   : {};
@@ -28,6 +31,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/jobs', jobRoutes);
 app.use('/api/applications', applicationRoutes);
+app.use('/api/interviews', interviewRoutes);
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 

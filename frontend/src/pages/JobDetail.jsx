@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -56,6 +56,11 @@ export default function JobDetail() {
           />
           <button type="submit" className="btn primary">Apply</button>
         </form>
+      )}
+      {user?.role === 'candidate' && (
+        <p style={{ marginTop: '1rem' }}>
+          <Link to={`/jobs/${id}/interview`} className="btn secondary">Take AI Interview</Link>
+        </p>
       )}
       {applied && <p className="status-msg">You've applied to this role — check "My Applications" for status updates.</p>}
       {!user && <p>Log in as a candidate to apply.</p>}

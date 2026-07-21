@@ -9,6 +9,7 @@ export default function Dashboard() {
   const [form, setForm] = useState({ title: '', description: '', category: '', payMin: '', payMax: '', skills: '' });
   const [selectedJob, setSelectedJob] = useState(null);
   const [applicants, setApplicants] = useState([]);
+  const [interviewsByCandidateId, setInterviewsByCandidateId] = useState({});
 
   const loadJobs = () => api.get('/jobs/mine').then((res) => setJobs(res.data.jobs));
   const loadStats = () => api.get('/jobs/mine/stats').then((res) => setStats(res.data));
@@ -38,8 +39,16 @@ export default function Dashboard() {
 
   const viewApplicants = async (job) => {
     setSelectedJob(job);
-    const res = await api.get(`/applications/job/${job._id}`);
-    setApplicants(res.data.applications);
+    const [appsRes, interviewsRes] = await Promise.all([
+      api.get(`/applications/job/${job._id}`),
+      api.get(`/interviews/job/${job._id}`),
+    ]);
+    setApplicants(appsRes.data.applications);
+    const map = {};
+    interviewsRes.data.interviews.forEach((iv) => {
+      if (iv.candidate?._id) map[iv.candidate._id] = iv;
+    });
+    setInterviewsByCandidateId(map);
   };
 
   const updateStatus = async (appId, newStatus) => {
@@ -99,24 +108,38 @@ export default function Dashboard() {
           <h2>Applicants for "{selectedJob.title}"</h2>
           <table className="table">
             <thead>
-              <tr><th>Candidate</th><th>Cover note</th><th>Status</th><th>Actions</th></tr>
+              <tr><th>Candidate</th><th>Cover note</th><th>AI Interview</th><th>Status</th><th>Actions</th></tr>
             </thead>
             <tbody>
-              {applicants.map((app) => (
-                <tr key={app._id}>
-                  <td>{app.candidate?.name}</td>
-                  <td>{app.coverNote}</td>
-                  <td><span className={`badge ${app.status}`}>{app.status}</span></td>
-                  <td>
-                    <select value={app.status} onChange={(e) => updateStatus(app._id, e.target.value)}>
-                      <option value="pending">Pending</option>
-                      <option value="reviewed">Reviewed</option>
-                      <option value="accepted">Accepted</option>
-                      <option value="rejected">Rejected</option>
-                    </select>
-                  </td>
-                </tr>
-              ))}
+              {applicants.map((app) => {
+                const interview = interviewsByCandidateId[app.candidate?._id];
+                return (
+                  <tr key={app._id}>
+                    <td>{app.candidate?.name}</td>
+                    <td>{app.coverNote}</td>
+                    <td>
+                      {interview?.status === 'completed' ? (
+                        <span className="interview-score-badge" title={interview.feedback}>
+                          {interview.score}/10
+                        </span>
+                      ) : interview ? (
+                        <span className="interview-score-badge pending">In progress</span>
+                      ) : (
+                        <span className="interview-score-badge none">Not taken</span>
+                      )}
+                    </td>
+                    <td><span className={`badge ${app.status}`}>{app.status}</span></td>
+                    <td>
+                      <select value={app.status} onChange={(e) => updateStatus(app._id, e.target.value)}>
+                        <option value="pending">Pending</option>
+                        <option value="reviewed">Reviewed</option>
+                        <option value="accepted">Accepted</option>
+                        <option value="rejected">Rejected</option>
+                      </select>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
           {applicants.length === 0 && <p>No applicants yet.</p>}

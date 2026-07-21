@@ -13,7 +13,10 @@
 [![Jest](https://img.shields.io/badge/Tested_with-Jest-C21325?style=flat-square&logo=jest&logoColor=white)](https://jestjs.io/)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](#license)
 
-**[Live Demo](https://mercor-clone-1.onrender.com)** &nbsp;·&nbsp; **[Setup Guide](#getting-started)** &nbsp;·&nbsp; **[Tests](#testing)**
+**[Live Demo](#)** &nbsp;·&nbsp; **[Setup Guide](#getting-started)** &nbsp;·&nbsp; **[Tests](#testing)**
+
+> Live demo link coming soon — deployment in progress.
+
 </div>
 
 ---
@@ -59,6 +62,11 @@ TalentMarket is a MERN-stack marketplace where **candidates** browse and apply t
 - Toast notifications across every form
 - Animated stat counters
 - Sidebar navigation (Explore / Home / Referrals / Earnings / Profile)
+**AI-Powered Interview**
+- Candidates take an AI-generated interview tailored to each job's title, description, and skills
+- Instant AI scoring (1-10) and written feedback after submission
+- Recruiters see interview scores alongside applicants in their dashboard
+- Powered by the Groq API (Llama 3.3 70B) — free tier, no credit card required
 
 </td>
 </tr>
@@ -86,7 +94,7 @@ mercor-clone/
 │   ├── models/          User, Job, Application (Mongoose schemas)
 │   ├── routes/          auth, users, jobs, applications
 │   ├── middleware/       JWT auth guard, role guard, centralized error handler
-│   ├── tests/            Jest + Supertest suite (19 tests)
+│   ├── tests/            Jest + Supertest suite (25 tests)
 │   └── server.js
 └── frontend/
     └── src/
@@ -127,7 +135,11 @@ Edit `.env`:
 MONGO_URI=mongodb+srv://<user>:<password>@<cluster>.mongodb.net/talentmarket
 JWT_SECRET=your_long_random_secret_here
 PORT=5000
+GROQ_API_KEY=your_groq_api_key_here
 ```
+
+> The AI Interview feature requires a free [Groq API key](https://console.groq.com) (no credit card needed). Without it, everything else in the app works fine — only the interview-scoring routes will fail.
+
 
 ```bash
 npm run dev
@@ -152,7 +164,7 @@ cd backend
 npm test
 ```
 
-19 tests covering auth validation, role-based access control, ownership checks, the full apply-review-accept flow, and edge cases (duplicate applications, invalid statuses, cross-user access attempts). Runs against an in-memory MongoDB instance — no live database required.
+25 tests covering auth validation, role-based access control, ownership checks, the full apply-review-accept flow, AI interview generation/scoring (with the Groq API mocked — no real calls made during test runs), and edge cases (duplicate applications, invalid statuses, cross-user access attempts). Runs against an in-memory MongoDB instance — no live database required.
 
 <br>
 
@@ -163,6 +175,7 @@ Built with deliberate scope decisions given time constraints — being upfront a
 | Section | Status |
 |---|---|
 | Explore, Auth, Applications, Recruiter Dashboard | Fully functional, tested |
+| AI Interview (generation + scoring) | Fully functional, tested (requires free GROQ_API_KEY) |
 | Profile — Resume tab | Fully functional |
 | Profile — other 5 tabs (Location, Availability, etc.) | UI placeholder |
 | Referrals | UI shell (real "copy link" button, static funnel data) |

@@ -7,6 +7,7 @@ import CandidateHome from './pages/CandidateHome';
 import Referrals from './pages/Referrals';
 import Earnings from './pages/Earnings';
 import JobDetail from './pages/JobDetail';
+import AIInterview from './pages/AIInterview';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Profile from './pages/Profile';
@@ -21,6 +22,14 @@ export default function App() {
           <Route path="/" element={<Landing />} />
           <Route path="/explore" element={<Explore />} />
           <Route path="/jobs/:id" element={<JobDetail />} />
+          <Route
+            path="/jobs/:id/interview"
+            element={
+              <ProtectedRoute role="candidate">
+                <AIInterview />
+              </ProtectedRoute>
+            }
+          />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route
