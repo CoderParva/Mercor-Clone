@@ -13,9 +13,7 @@
 [![Jest](https://img.shields.io/badge/Tested_with-Jest-C21325?style=flat-square&logo=jest&logoColor=white)](https://jestjs.io/)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](#license)
 
-**[Live Demo](#)** &nbsp;·&nbsp; **[Setup Guide](#getting-started)** &nbsp;·&nbsp; **[Tests](#testing)**
-
-> Live demo link coming soon — deployment in progress.
+**[Live Demo](https://mercor-clone-1.onrender.com)** &nbsp;·&nbsp; **[Setup Guide](#getting-started)** &nbsp;·&nbsp; **[Tests](#testing)**
 
 </div>
 
@@ -62,10 +60,12 @@ TalentMarket is a MERN-stack marketplace where **candidates** browse and apply t
 - Toast notifications across every form
 - Animated stat counters
 - Sidebar navigation (Explore / Home / Referrals / Earnings / Profile)
-**AI-Powered Interview**
-- Candidates take an AI-generated interview tailored to each job's title, description, and skills
-- Instant AI scoring (1-10) and written feedback after submission
-- Recruiters see interview scores alongside applicants in their dashboard
+
+**Voice-Based AI Interview**
+- Spoken interview: candidates hear each question read aloud and answer by speaking, live-transcribed in the browser
+- Camera + microphone access required before starting — no way to skip
+- Animated AI interviewer avatar (speaking/listening states) with a live progress bar
+- Per-question AI scoring and feedback, plus an overall score, shown to both candidate and recruiter
 - Powered by the Groq API (Llama 3.3 70B) — free tier, no credit card required
 
 </td>
@@ -91,18 +91,19 @@ TalentMarket is a MERN-stack marketplace where **candidates** browse and apply t
 ```
 mercor-clone/
 ├── backend/
-│   ├── models/          User, Job, Application (Mongoose schemas)
-│   ├── routes/          auth, users, jobs, applications
+│   ├── models/          User, Job, Application, Interview (Mongoose schemas)
+│   ├── routes/          auth, users, jobs, applications, interviews
+│   ├── services/         aiInterview (Groq API integration — question generation & scoring)
 │   ├── middleware/       JWT auth guard, role guard, centralized error handler
 │   ├── tests/            Jest + Supertest suite (25 tests)
 │   └── server.js
 └── frontend/
     └── src/
-        ├── pages/         Landing, Explore, JobDetail, CandidateHome,
+        ├── pages/         Landing, Explore, JobDetail, AIInterview, CandidateHome,
         │                  Referrals, Earnings, Login, Register,
         │                  Profile, Dashboard (recruiter)
         ├── components/    Sidebar, JobCard, AvatarStack, Skeleton,
-        │                  AnimatedCounter, ProtectedRoute
+        │                  AnimatedCounter, AIAvatar, ProtectedRoute
         ├── context/        AuthContext (JWT session), ToastContext (notifications)
         └── api/            Axios instance with auth-header injection
 ```
@@ -140,7 +141,6 @@ GROQ_API_KEY=your_groq_api_key_here
 
 > The AI Interview feature requires a free [Groq API key](https://console.groq.com) (no credit card needed). Without it, everything else in the app works fine — only the interview-scoring routes will fail.
 
-
 ```bash
 npm run dev
 ```
@@ -175,7 +175,7 @@ Built with deliberate scope decisions given time constraints — being upfront a
 | Section | Status |
 |---|---|
 | Explore, Auth, Applications, Recruiter Dashboard | Fully functional, tested |
-| AI Interview (generation + scoring) | Fully functional, tested (requires free GROQ_API_KEY) |
+| AI Interview (voice Q&A, avatar, per-question + overall scoring) | Fully functional, tested (requires free GROQ_API_KEY, Chrome/Edge for voice — typed fallback elsewhere) |
 | Profile — Resume tab | Fully functional |
 | Profile — other 5 tabs (Location, Availability, etc.) | UI placeholder |
 | Referrals | UI shell (real "copy link" button, static funnel data) |
