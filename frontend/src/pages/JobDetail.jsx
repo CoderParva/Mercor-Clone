@@ -42,7 +42,7 @@ export default function JobDetail() {
         </div>
       )}
       {job.hiresCount > 0 && <p className="hires-badge inline">{job.hiresCount} hired recently</p>}
-      <p>{job.description}</p>
+      <p className="job-description">{job.description}</p>
       <p className="posted-by">Posted by {job.postedBy?.name}</p>
 
       {user?.role === 'candidate' && !applied && (

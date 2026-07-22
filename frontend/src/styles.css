@@ -13,7 +13,7 @@
   --success: #10b981;
   --error: #dc2626;
   --radius: 10px;
-  --shadow-sm: 0 1px 3px rgba(20,20,43,0.06);
+  --shadow-sm: 0 1px 3px rgba(20,20,43,0.06); 
   --shadow-md: 0 8px 24px rgba(20,20,43,0.08);
   --sidebar-w: 76px;
 }
@@ -247,6 +247,7 @@ a { text-decoration: none; color: inherit; }
 .center-msg.small { font-size: 0.82rem; padding: 1rem; }
 
 .page { padding: 2rem 0 4rem; }
+.job-description { white-space: pre-line; line-height: 1.6; }
 .search-bar { display: flex; gap: 0.5rem; margin: 1rem 0 1rem; }
 .search-bar input { flex: 1; padding: 0.65rem 0.9rem; border: 1px solid var(--border); border-radius: 8px; font: inherit; }
 .search-bar button { padding: 0.65rem 1.3rem; border-radius: 8px; border: none; background: var(--accent); color: white; font-weight: 600; cursor: pointer; }
