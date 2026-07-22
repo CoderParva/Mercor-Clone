@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Fragment } from 'react';
 import api from '../api/axios';
 import { useToast } from '../context/ToastContext';
 
@@ -10,6 +10,7 @@ export default function Dashboard() {
   const [selectedJob, setSelectedJob] = useState(null);
   const [applicants, setApplicants] = useState([]);
   const [interviewsByCandidateId, setInterviewsByCandidateId] = useState({});
+  const [expandedCandidateId, setExpandedCandidateId] = useState(null);
 
   const loadJobs = () => api.get('/jobs/mine').then((res) => setJobs(res.data.jobs));
   const loadStats = () => api.get('/jobs/mine/stats').then((res) => setStats(res.data));
@@ -113,31 +114,104 @@ export default function Dashboard() {
             <tbody>
               {applicants.map((app) => {
                 const interview = interviewsByCandidateId[app.candidate?._id];
+                const candidate = app.candidate;
+                const isExpanded = expandedCandidateId === candidate?._id;
                 return (
-                  <tr key={app._id}>
-                    <td>{app.candidate?.name}</td>
-                    <td>{app.coverNote}</td>
-                    <td>
-                      {interview?.status === 'completed' ? (
-                        <span className="interview-score-badge" title={interview.feedback}>
-                          {interview.score}/10
-                        </span>
-                      ) : interview ? (
-                        <span className="interview-score-badge pending">In progress</span>
-                      ) : (
-                        <span className="interview-score-badge none">Not taken</span>
-                      )}
-                    </td>
-                    <td><span className={`badge ${app.status}`}>{app.status}</span></td>
-                    <td>
-                      <select value={app.status} onChange={(e) => updateStatus(app._id, e.target.value)}>
-                        <option value="pending">Pending</option>
-                        <option value="reviewed">Reviewed</option>
-                        <option value="accepted">Accepted</option>
-                        <option value="rejected">Rejected</option>
-                      </select>
-                    </td>
-                  </tr>
+                  <Fragment key={app._id}>
+                    <tr>
+                      <td>
+                        {candidate?.name}
+                        <br />
+                        <button
+                          type="button"
+                          className="link-btn"
+                          style={{ fontSize: '0.78rem' }}
+                          onClick={() => setExpandedCandidateId(isExpanded ? null : candidate?._id)}
+                        >
+                          {isExpanded ? 'Hide profile' : 'View profile'}
+                        </button>
+                      </td>
+                      <td>{app.coverNote}</td>
+                      <td>
+                        {interview?.status === 'completed' ? (
+                          <span className="interview-score-badge" title={interview.feedback}>
+                            {interview.score}/10
+                          </span>
+                        ) : interview ? (
+                          <span className="interview-score-badge pending">In progress</span>
+                        ) : (
+                          <span className="interview-score-badge none">Not taken</span>
+                        )}
+                      </td>
+                      <td><span className={`badge ${app.status}`}>{app.status}</span></td>
+                      <td>
+                        <select value={app.status} onChange={(e) => updateStatus(app._id, e.target.value)}>
+                          <option value="pending">Pending</option>
+                          <option value="reviewed">Reviewed</option>
+                          <option value="accepted">Accepted</option>
+                          <option value="rejected">Rejected</option>
+                        </select>
+                      </td>
+                    </tr>
+                    {isExpanded && (
+                      <tr className="candidate-profile-row">
+                        <td colSpan={5}>
+                          <div className="candidate-profile-panel">
+                            <div className="candidate-profile-header">
+                              <strong>{candidate?.name}</strong>
+                              {candidate?.title && <span> — {candidate.title}</span>}
+                              <span className="candidate-profile-email">{candidate?.email}</span>
+                              {candidate?.phone && <span> · {candidate.phone}</span>}
+                              {candidate?.linkedinUrl && (
+                                <a href={candidate.linkedinUrl} target="_blank" rel="noreferrer"> · LinkedIn</a>
+                              )}
+                            </div>
+
+                            {candidate?.bio && <p className="candidate-profile-bio">{candidate.bio}</p>}
+
+                            {candidate?.skills?.length > 0 && (
+                              <div className="skill-tags">
+                                {candidate.skills.map((s) => (
+                                  <span className="skill-tag" key={s}>{s}</span>
+                                ))}
+                              </div>
+                            )}
+
+                            {candidate?.education?.length > 0 && (
+                              <div className="candidate-profile-block">
+                                <span className="resume-hint">Education</span>
+                                {candidate.education.map((ed, i) => (
+                                  <p key={i}>{ed.degree} — {ed.school} {ed.startYear ? `(${ed.startYear}-${ed.endYear || ''})` : ''}</p>
+                                ))}
+                              </div>
+                            )}
+
+                            {candidate?.workExperience?.length > 0 && (
+                              <div className="candidate-profile-block">
+                                <span className="resume-hint">Work Experience</span>
+                                {candidate.workExperience.map((w, i) => (
+                                  <p key={i}>{w.role} at {w.company} {w.startYear ? `(${w.startYear}-${w.endYear || ''})` : ''}</p>
+                                ))}
+                              </div>
+                            )}
+
+                            {candidate?.projects?.length > 0 && (
+                              <div className="candidate-profile-block">
+                                <span className="resume-hint">Projects</span>
+                                {candidate.projects.map((p, i) => (
+                                  <p key={i}>{p.name}{p.description ? ` — ${p.description}` : ''}</p>
+                                ))}
+                              </div>
+                            )}
+
+                            {!candidate?.bio && !candidate?.title && !candidate?.education?.length && !candidate?.workExperience?.length && (
+                              <p className="resume-empty">This candidate hasn't filled out their profile yet.</p>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
                 );
               })}
             </tbody>

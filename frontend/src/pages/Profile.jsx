@@ -3,7 +3,7 @@ import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 
-const TABS = [
+const CANDIDATE_TABS = [
   'Resume',
   'Location & work authorization',
   'Availability',
@@ -11,6 +11,8 @@ const TABS = [
   'Communications',
   'Account',
 ];
+
+const RECRUITER_TABS = ['Company Profile', 'Communications', 'Account'];
 
 const HOBBY_OPTIONS = [
   'Football (American)', 'Basketball', 'Soccer', 'Cricket',
@@ -24,8 +26,12 @@ const emptyProject = { name: '', startYear: '', endYear: '', description: '' };
 export default function Profile() {
   const { user, setUser } = useAuth();
   const { showToast } = useToast();
-  const [tab, setTab] = useState('Resume');
+  const isRecruiter = user?.role === 'recruiter';
+  const TABS = isRecruiter ? RECRUITER_TABS : CANDIDATE_TABS;
+
+  const [tab, setTab] = useState(TABS[0]);
   const [saving, setSaving] = useState(false);
+  const [newLanguage, setNewLanguage] = useState('');
 
   const [form, setForm] = useState({
     name: '', title: '', bio: '', skills: '', hourlyRate: '',
@@ -35,8 +41,15 @@ export default function Profile() {
     profiles: { leetcode: '', github: '', codechef: '', codeforces: '' },
     portfolioUrl: '', otherLinks: [],
     languages: [], hobbies: [],
+    country: '', city: '', timezone: '', workAuthorization: '',
+    availability: { hoursPerWeek: '', startDate: '', employmentType: '' },
+    workPreferences: { remotePreference: '', willingToRelocate: false, desiredPayMin: '', desiredPayMax: '' },
+    communicationPrefs: { preferredContact: 'email', emailNotifications: true },
+    companyName: '', companyWebsite: '', positionAtCompany: '', department: '', companySize: '', industry: '',
   });
-  const [newLanguage, setNewLanguage] = useState('');
+
+  const [pwForm, setPwForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  const [pwSaving, setPwSaving] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -60,11 +73,35 @@ export default function Profile() {
         otherLinks: user.otherLinks || [],
         languages: user.languages || [],
         hobbies: user.hobbies || [],
+        country: user.country || '',
+        city: user.city || '',
+        timezone: user.timezone || '',
+        workAuthorization: user.workAuthorization || '',
+        availability: {
+          hoursPerWeek: user.availability?.hoursPerWeek ?? '',
+          startDate: user.availability?.startDate || '',
+          employmentType: user.availability?.employmentType || '',
+        },
+        workPreferences: {
+          remotePreference: user.workPreferences?.remotePreference || '',
+          willingToRelocate: user.workPreferences?.willingToRelocate || false,
+          desiredPayMin: user.workPreferences?.desiredPayMin ?? '',
+          desiredPayMax: user.workPreferences?.desiredPayMax ?? '',
+        },
+        communicationPrefs: {
+          preferredContact: user.communicationPrefs?.preferredContact || 'email',
+          emailNotifications: user.communicationPrefs?.emailNotifications ?? true,
+        },
+        companyName: user.companyName || '',
+        companyWebsite: user.companyWebsite || '',
+        positionAtCompany: user.positionAtCompany || '',
+        department: user.department || '',
+        companySize: user.companySize || '',
+        industry: user.industry || '',
       });
     }
   }, [user]);
 
-  // --- generic list helpers ---
   const addItem = (key, empty) => setForm((f) => ({ ...f, [key]: [...f[key], { ...empty }] }));
   const removeItem = (key, index) => setForm((f) => ({ ...f, [key]: f[key].filter((_, i) => i !== index) }));
   const updateItem = (key, index, field, value) =>
@@ -104,25 +141,13 @@ export default function Profile() {
         title: form.title,
         bio: form.bio,
         skills: form.skills.split(',').map((s) => s.trim()).filter(Boolean),
-        hourlyRate: Number(form.hourlyRate) || undefined,
+        hourlyRate: numify(form.hourlyRate),
         phone: form.phone,
         linkedinUrl: form.linkedinUrl,
         summary: form.summary,
-        education: form.education.map((ed) => ({
-          ...ed,
-          startYear: numify(ed.startYear),
-          endYear: numify(ed.endYear),
-        })),
-        workExperience: form.workExperience.map((w) => ({
-          ...w,
-          startYear: numify(w.startYear),
-          endYear: numify(w.endYear),
-        })),
-        projects: form.projects.map((p) => ({
-          ...p,
-          startYear: numify(p.startYear),
-          endYear: numify(p.endYear),
-        })),
+        education: form.education.map((ed) => ({ ...ed, startYear: numify(ed.startYear), endYear: numify(ed.endYear) })),
+        workExperience: form.workExperience.map((w) => ({ ...w, startYear: numify(w.startYear), endYear: numify(w.endYear) })),
+        projects: form.projects.map((p) => ({ ...p, startYear: numify(p.startYear), endYear: numify(p.endYear) })),
         publications: form.publications.filter((p) => p.trim()),
         certifications: form.certifications.filter((c) => c.trim()),
         awards: form.awards.filter((a) => a.trim()),
@@ -131,6 +156,28 @@ export default function Profile() {
         otherLinks: form.otherLinks.filter((l) => l.trim()),
         languages: form.languages,
         hobbies: form.hobbies,
+        country: form.country,
+        city: form.city,
+        timezone: form.timezone,
+        workAuthorization: form.workAuthorization,
+        availability: {
+          hoursPerWeek: numify(form.availability.hoursPerWeek),
+          startDate: form.availability.startDate,
+          employmentType: form.availability.employmentType,
+        },
+        workPreferences: {
+          remotePreference: form.workPreferences.remotePreference,
+          willingToRelocate: form.workPreferences.willingToRelocate,
+          desiredPayMin: numify(form.workPreferences.desiredPayMin),
+          desiredPayMax: numify(form.workPreferences.desiredPayMax),
+        },
+        communicationPrefs: form.communicationPrefs,
+        companyName: form.companyName,
+        companyWebsite: form.companyWebsite,
+        positionAtCompany: form.positionAtCompany,
+        department: form.department,
+        companySize: form.companySize,
+        industry: form.industry,
       };
       const res = await api.put('/users/profile', payload);
       setUser(res.data.user);
@@ -139,6 +186,27 @@ export default function Profile() {
       showToast(err.response?.data?.message || 'Update failed', 'error');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const submitPasswordChange = async (e) => {
+    e.preventDefault();
+    if (pwForm.newPassword !== pwForm.confirmPassword) {
+      showToast('New passwords do not match', 'error');
+      return;
+    }
+    setPwSaving(true);
+    try {
+      await api.put('/users/change-password', {
+        currentPassword: pwForm.currentPassword,
+        newPassword: pwForm.newPassword,
+      });
+      showToast('Password updated', 'success');
+      setPwForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Failed to update password', 'error');
+    } finally {
+      setPwSaving(false);
     }
   };
 
@@ -154,16 +222,8 @@ export default function Profile() {
         ))}
       </div>
 
-      {tab !== 'Resume' && (
-        <div className="profile-placeholder">
-          <p>{tab} settings aren't wired up yet — this tab is a UI placeholder.</p>
-        </div>
-      )}
-
-      {tab === 'Resume' && (
+      {tab === 'Resume' && !isRecruiter && (
         <form className="resume-form" onSubmit={submit}>
-
-          {/* Basic info */}
           <section className="resume-section">
             <label>Full legal name<input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></label>
             <div className="resume-row">
@@ -176,13 +236,10 @@ export default function Profile() {
             <label>Bio<textarea rows={3} value={form.bio} onChange={(e) => setForm({ ...form, bio: e.target.value })} /></label>
             <div className="resume-row">
               <label>Skills (comma separated)<input value={form.skills} onChange={(e) => setForm({ ...form, skills: e.target.value })} /></label>
-              {user?.role === 'candidate' && (
-                <label>Hourly rate ($)<input type="number" value={form.hourlyRate} onChange={(e) => setForm({ ...form, hourlyRate: e.target.value })} /></label>
-              )}
+              <label>Hourly rate ($)<input type="number" value={form.hourlyRate} onChange={(e) => setForm({ ...form, hourlyRate: e.target.value })} /></label>
             </div>
           </section>
 
-          {/* Education */}
           <section className="resume-section">
             <div className="resume-section-header">
               <h2>Education</h2>
@@ -211,7 +268,6 @@ export default function Profile() {
             {form.education.length === 0 && <p className="resume-empty">No education added yet.</p>}
           </section>
 
-          {/* Work experience */}
           <section className="resume-section">
             <div className="resume-section-header">
               <h2>Work experience</h2>
@@ -232,8 +288,8 @@ export default function Profile() {
                   <label>End year<input value={w.endYear} onChange={(e) => updateItem('workExperience', i, 'endYear', e.target.value)} /></label>
                 </div>
                 <div className="resume-row">
-                  <label>City<input value={w.city} onChange={(e) => updateItem('workExperience', i, 'city', e.target.value)} placeholder="Ex: San Francisco" /></label>
-                  <label>Country<input value={w.country} onChange={(e) => updateItem('workExperience', i, 'country', e.target.value)} placeholder="Ex: United States of America" /></label>
+                  <label>City<input value={w.city} onChange={(e) => updateItem('workExperience', i, 'city', e.target.value)} /></label>
+                  <label>Country<input value={w.country} onChange={(e) => updateItem('workExperience', i, 'country', e.target.value)} /></label>
                 </div>
                 <label>Description<textarea rows={3} value={w.description} onChange={(e) => updateItem('workExperience', i, 'description', e.target.value)} /></label>
               </div>
@@ -241,7 +297,6 @@ export default function Profile() {
             {form.workExperience.length === 0 && <p className="resume-empty">No work experience added yet.</p>}
           </section>
 
-          {/* Projects */}
           <section className="resume-section">
             <div className="resume-section-header">
               <h2>Projects</h2>
@@ -264,7 +319,6 @@ export default function Profile() {
             {form.projects.length === 0 && <p className="resume-empty">No projects added yet.</p>}
           </section>
 
-          {/* Publications */}
           <section className="resume-section">
             <div className="resume-section-header"><h2>Publications</h2></div>
             {form.publications.map((pub, i) => (
@@ -276,19 +330,17 @@ export default function Profile() {
             <button type="button" className="link-add" onClick={() => addStringItem('publications')}>+ Add publication</button>
           </section>
 
-          {/* Certifications */}
           <section className="resume-section">
             <div className="resume-section-header"><h2>Certifications</h2></div>
             {form.certifications.map((c, i) => (
               <div className="tag-input-row" key={i}>
-                <input value={c} onChange={(e) => updateStringItem('certifications', i, e.target.value)} placeholder="e.g. MERN Full Stack Certification (Ethnus, 2025)" />
+                <input value={c} onChange={(e) => updateStringItem('certifications', i, e.target.value)} />
                 <button type="button" className="link-remove" onClick={() => removeStringItem('certifications', i)}>✕</button>
               </div>
             ))}
             <button type="button" className="link-add" onClick={() => addStringItem('certifications')}>+ Add certification</button>
           </section>
 
-          {/* Awards */}
           <section className="resume-section">
             <div className="resume-section-header"><h2>Awards</h2></div>
             {form.awards.map((a, i) => (
@@ -300,7 +352,6 @@ export default function Profile() {
             <button type="button" className="link-add" onClick={() => addStringItem('awards')}>+ Add award</button>
           </section>
 
-          {/* Coding profiles */}
           <section className="resume-section">
             <h2>Profiles</h2>
             <label>LeetCode username<input value={form.profiles.leetcode} onChange={(e) => setForm({ ...form, profiles: { ...form.profiles, leetcode: e.target.value } })} /></label>
@@ -309,24 +360,21 @@ export default function Profile() {
             <label>Codeforces username<input value={form.profiles.codeforces} onChange={(e) => setForm({ ...form, profiles: { ...form.profiles, codeforces: e.target.value } })} /></label>
           </section>
 
-          {/* Links */}
           <section className="resume-section">
             <h2>Links</h2>
-            <label>Portfolio URL<input value={form.portfolioUrl} onChange={(e) => setForm({ ...form, portfolioUrl: e.target.value })} placeholder="https://yourportfolio.com" /></label>
+            <label>Portfolio URL<input value={form.portfolioUrl} onChange={(e) => setForm({ ...form, portfolioUrl: e.target.value })} /></label>
             <div className="resume-section-header"><span>Other links</span></div>
             {form.otherLinks.map((l, i) => (
               <div className="tag-input-row" key={i}>
-                <input value={l} onChange={(e) => updateStringItem('otherLinks', i, e.target.value)} placeholder="https://example.com" />
+                <input value={l} onChange={(e) => updateStringItem('otherLinks', i, e.target.value)} />
                 <button type="button" className="link-remove" onClick={() => removeStringItem('otherLinks', i)}>✕</button>
               </div>
             ))}
             <button type="button" className="link-add" onClick={() => addStringItem('otherLinks')}>+ Add more links</button>
           </section>
 
-          {/* Languages */}
           <section className="resume-section">
             <h2>Languages</h2>
-            <p className="resume-hint">What languages can you natively speak, read, and write?</p>
             <div className="tag-input-row">
               <input
                 value={newLanguage}
@@ -338,44 +386,175 @@ export default function Profile() {
             </div>
             <div className="skill-tags">
               {form.languages.map((l) => (
-                <span className="skill-tag" key={l}>
-                  {l} <button type="button" className="tag-x" onClick={() => removeLanguage(l)}>✕</button>
-                </span>
+                <span className="skill-tag" key={l}>{l} <button type="button" className="tag-x" onClick={() => removeLanguage(l)}>✕</button></span>
               ))}
             </div>
           </section>
 
-          {/* Hobbies */}
           <section className="resume-section">
             <h2>Hobbies</h2>
-            <p className="resume-hint">Select all that apply:</p>
             <div className="hobby-options">
               {HOBBY_OPTIONS.map((h) => (
-                <button
-                  type="button"
-                  key={h}
-                  className={`hobby-chip ${form.hobbies.includes(h) ? 'selected' : ''}`}
-                  onClick={() => toggleHobby(h)}
-                >
+                <button type="button" key={h} className={`hobby-chip ${form.hobbies.includes(h) ? 'selected' : ''}`} onClick={() => toggleHobby(h)}>
                   {h}
                 </button>
               ))}
             </div>
-            {form.hobbies.length > 0 && (
-              <div className="skill-tags" style={{ marginTop: '0.75rem' }}>
-                {form.hobbies.map((h) => (
-                  <span className="skill-tag" key={h}>
-                    {h} <button type="button" className="tag-x" onClick={() => toggleHobby(h)}>✕</button>
-                  </span>
-                ))}
-              </div>
-            )}
           </section>
 
-          <button type="submit" className="btn primary" disabled={saving}>
-            {saving ? 'Saving...' : 'Save'}
-          </button>
+          <button type="submit" className="btn primary" disabled={saving}>{saving ? 'Saving...' : 'Save'}</button>
         </form>
+      )}
+
+      {tab === 'Location & work authorization' && !isRecruiter && (
+        <form className="resume-form" onSubmit={submit}>
+          <section className="resume-section">
+            <div className="resume-row">
+              <label>Country<input value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })} placeholder="e.g. India" /></label>
+              <label>City<input value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} placeholder="e.g. Indore" /></label>
+            </div>
+            <label>Timezone<input value={form.timezone} onChange={(e) => setForm({ ...form, timezone: e.target.value })} placeholder="e.g. GMT+5:30" /></label>
+            <label>Work authorization
+              <select value={form.workAuthorization} onChange={(e) => setForm({ ...form, workAuthorization: e.target.value })}>
+                <option value="">Select...</option>
+                <option value="citizen">Citizen</option>
+                <option value="permanent_resident">Permanent Resident</option>
+                <option value="visa_required">Visa Sponsorship Required</option>
+                <option value="prefer_not_to_say">Prefer not to say</option>
+              </select>
+            </label>
+          </section>
+          <button type="submit" className="btn primary" disabled={saving}>{saving ? 'Saving...' : 'Save'}</button>
+        </form>
+      )}
+
+      {tab === 'Availability' && !isRecruiter && (
+        <form className="resume-form" onSubmit={submit}>
+          <section className="resume-section">
+            <label>Hours available per week
+              <input type="number" value={form.availability.hoursPerWeek}
+                onChange={(e) => setForm({ ...form, availability: { ...form.availability, hoursPerWeek: e.target.value } })} placeholder="e.g. 40" />
+            </label>
+            <label>Preferred start date
+              <input type="date" value={form.availability.startDate}
+                onChange={(e) => setForm({ ...form, availability: { ...form.availability, startDate: e.target.value } })} />
+            </label>
+            <label>Employment type preference
+              <select value={form.availability.employmentType}
+                onChange={(e) => setForm({ ...form, availability: { ...form.availability, employmentType: e.target.value } })}>
+                <option value="">Select...</option>
+                <option value="full-time">Full-time</option>
+                <option value="part-time">Part-time</option>
+                <option value="contract">Contract</option>
+                <option value="either">No preference</option>
+              </select>
+            </label>
+          </section>
+          <button type="submit" className="btn primary" disabled={saving}>{saving ? 'Saving...' : 'Save'}</button>
+        </form>
+      )}
+
+      {tab === 'Work preferences' && !isRecruiter && (
+        <form className="resume-form" onSubmit={submit}>
+          <section className="resume-section">
+            <label>Remote preference
+              <select value={form.workPreferences.remotePreference}
+                onChange={(e) => setForm({ ...form, workPreferences: { ...form.workPreferences, remotePreference: e.target.value } })}>
+                <option value="">Select...</option>
+                <option value="remote">Remote</option>
+                <option value="hybrid">Hybrid</option>
+                <option value="onsite">Onsite</option>
+                <option value="no preference">No preference</option>
+              </select>
+            </label>
+            <label className="checkbox-label">
+              <input type="checkbox" checked={form.workPreferences.willingToRelocate}
+                onChange={(e) => setForm({ ...form, workPreferences: { ...form.workPreferences, willingToRelocate: e.target.checked } })} />
+              Willing to relocate
+            </label>
+            <div className="resume-row">
+              <label>Desired pay min ($/hr)
+                <input type="number" value={form.workPreferences.desiredPayMin}
+                  onChange={(e) => setForm({ ...form, workPreferences: { ...form.workPreferences, desiredPayMin: e.target.value } })} />
+              </label>
+              <label>Desired pay max ($/hr)
+                <input type="number" value={form.workPreferences.desiredPayMax}
+                  onChange={(e) => setForm({ ...form, workPreferences: { ...form.workPreferences, desiredPayMax: e.target.value } })} />
+              </label>
+            </div>
+          </section>
+          <button type="submit" className="btn primary" disabled={saving}>{saving ? 'Saving...' : 'Save'}</button>
+        </form>
+      )}
+
+      {tab === 'Company Profile' && isRecruiter && (
+        <form className="resume-form" onSubmit={submit}>
+          <section className="resume-section">
+            <label>Full name<input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></label>
+            <label>Email<input value={user?.email || ''} disabled /></label>
+            <div className="resume-row">
+              <label>Your position/title<input value={form.positionAtCompany} onChange={(e) => setForm({ ...form, positionAtCompany: e.target.value })} placeholder="e.g. Talent Acquisition Manager" /></label>
+              <label>Department<input value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} placeholder="e.g. HR / Engineering" /></label>
+            </div>
+            <label>Company name<input value={form.companyName} onChange={(e) => setForm({ ...form, companyName: e.target.value })} /></label>
+            <div className="resume-row">
+              <label>Industry<input value={form.industry} onChange={(e) => setForm({ ...form, industry: e.target.value })} placeholder="e.g. AI / Fintech / SaaS" /></label>
+              <label>Company size
+                <select value={form.companySize} onChange={(e) => setForm({ ...form, companySize: e.target.value })}>
+                  <option value="">Select...</option>
+                  <option value="1-10">1-10</option>
+                  <option value="11-50">11-50</option>
+                  <option value="51-200">51-200</option>
+                  <option value="201-1000">201-1000</option>
+                  <option value="1000+">1000+</option>
+                </select>
+              </label>
+            </div>
+            <label>Company website<input value={form.companyWebsite} onChange={(e) => setForm({ ...form, companyWebsite: e.target.value })} placeholder="https://yourcompany.com" /></label>
+            <label>About / hiring focus<textarea rows={4} value={form.bio} onChange={(e) => setForm({ ...form, bio: e.target.value })} placeholder="What kind of talent are you typically hiring for?" /></label>
+          </section>
+          <button type="submit" className="btn primary" disabled={saving}>{saving ? 'Saving...' : 'Save'}</button>
+        </form>
+      )}
+
+      {tab === 'Communications' && (
+        <form className="resume-form" onSubmit={submit}>
+          <section className="resume-section">
+            <label>Preferred contact method
+              <select value={form.communicationPrefs.preferredContact}
+                onChange={(e) => setForm({ ...form, communicationPrefs: { ...form.communicationPrefs, preferredContact: e.target.value } })}>
+                <option value="email">Email</option>
+                <option value="phone">Phone</option>
+                <option value="either">Either</option>
+              </select>
+            </label>
+            <label className="checkbox-label">
+              <input type="checkbox" checked={form.communicationPrefs.emailNotifications}
+                onChange={(e) => setForm({ ...form, communicationPrefs: { ...form.communicationPrefs, emailNotifications: e.target.checked } })} />
+              Send me email notifications about application updates
+            </label>
+          </section>
+          <button type="submit" className="btn primary" disabled={saving}>{saving ? 'Saving...' : 'Save'}</button>
+        </form>
+      )}
+
+      {tab === 'Account' && (
+        <div className="resume-form">
+          <section className="resume-section">
+            <h2>Account details</h2>
+            <label>Email<input value={user?.email || ''} disabled /></label>
+            <label>Role<input value={user?.role || ''} disabled style={{ textTransform: 'capitalize' }} /></label>
+          </section>
+          <section className="resume-section">
+            <h2>Change password</h2>
+            <form className="resume-form" onSubmit={submitPasswordChange} style={{ maxWidth: 420 }}>
+              <label>Current password<input type="password" value={pwForm.currentPassword} onChange={(e) => setPwForm({ ...pwForm, currentPassword: e.target.value })} required /></label>
+              <label>New password<input type="password" value={pwForm.newPassword} onChange={(e) => setPwForm({ ...pwForm, newPassword: e.target.value })} required /></label>
+              <label>Confirm new password<input type="password" value={pwForm.confirmPassword} onChange={(e) => setPwForm({ ...pwForm, confirmPassword: e.target.value })} required /></label>
+              <button type="submit" className="btn primary" disabled={pwSaving}>{pwSaving ? 'Updating...' : 'Update password'}</button>
+            </form>
+          </section>
+        </div>
       )}
     </div>
   );

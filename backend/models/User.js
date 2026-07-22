@@ -36,7 +36,6 @@ const userSchema = new mongoose.Schema(
     hourlyRate: { type: Number },
     resumeUrl: { type: String, default: '' },
 
-    // Resume tab fields
     phone: { type: String, default: '' },
     linkedinUrl: { type: String, default: '' },
     summary: { type: String, default: '' },
@@ -56,6 +55,36 @@ const userSchema = new mongoose.Schema(
     otherLinks: [{ type: String }],
     languages: [{ type: String }],
     hobbies: [{ type: String }],
+
+    country: { type: String, default: '' },
+    city: { type: String, default: '' },
+    timezone: { type: String, default: '' },
+    workAuthorization: { type: String, default: '' },
+
+    availability: {
+      hoursPerWeek: { type: Number },
+      startDate: { type: String, default: '' },
+      employmentType: { type: String, default: '' },
+    },
+
+    workPreferences: {
+      remotePreference: { type: String, default: '' },
+      willingToRelocate: { type: Boolean, default: false },
+      desiredPayMin: { type: Number },
+      desiredPayMax: { type: Number },
+    },
+
+    communicationPrefs: {
+      preferredContact: { type: String, default: 'email' },
+      emailNotifications: { type: Boolean, default: true },
+    },
+
+    companyName: { type: String, default: '' },
+    companyWebsite: { type: String, default: '' },
+    positionAtCompany: { type: String, default: '' },
+    department: { type: String, default: '' },
+    companySize: { type: String, default: '' },
+    industry: { type: String, default: '' },
   },
   { timestamps: true }
 );

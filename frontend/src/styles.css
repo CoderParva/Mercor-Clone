@@ -165,7 +165,8 @@ a { text-decoration: none; color: inherit; }
   font: inherit; font-size: 0.85rem; cursor: pointer; color: var(--text);
 }
 .hobby-chip.selected { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
-
+.checkbox-label { display: flex !important; flex-direction: row !important; align-items: center; gap: 0.5rem; }
+.checkbox-label input[type="checkbox"] { width: auto; }
 .explore-toolbar { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 1.5rem; align-items: center; }
 .search-bar.compact { flex: 1; min-width: 200px; margin: 0; }
 .explore-toolbar select {
