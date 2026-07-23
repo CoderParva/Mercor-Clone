@@ -179,6 +179,7 @@ export default function Explore() {
           jobId={selectedJobId}
           onApply={(job) => setModalJob(job)}
           onClose={() => setSelectedJobId(null)}
+          onSelectJob={(id) => setSelectedJobId(id)}
         />
       )}
       </div>

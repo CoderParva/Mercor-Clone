@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import JobDescription from '../components/JobDescription';
+import JobExtras from '../components/JobExtras';
 
 export default function JobDetail() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { showToast } = useToast();
   const [job, setJob] = useState(null);
@@ -44,6 +46,7 @@ export default function JobDetail() {
       )}
       {job.hiresCount > 0 && <p className="hires-badge inline">{job.hiresCount} hired recently</p>}
       <JobDescription job={job} />
+      <JobExtras job={job} onSelectSimilar={(similarId) => navigate(`/jobs/${similarId}`)} />
       <p className="posted-by">Posted by {job.postedBy?.name}</p>
 
       {user?.role === 'candidate' && !applied && (

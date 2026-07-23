@@ -3,8 +3,9 @@ import { Link } from 'react-router-dom';
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
 import JobDescription from './JobDescription';
+import JobExtras from './JobExtras';
 
-export default function JobDetailPanel({ jobId, onApply, onClose }) {
+export default function JobDetailPanel({ jobId, onApply, onClose, onSelectJob }) {
   const { user } = useAuth();
   const [job, setJob] = useState(null);
   const [progress, setProgress] = useState(null);
@@ -98,6 +99,8 @@ export default function JobDetailPanel({ jobId, onApply, onClose }) {
       )}
 
       <JobDescription job={job} />
+
+      <JobExtras job={job} onSelectSimilar={(id) => onSelectJob(id)} />
 
       {user?.role === 'candidate' && (
         <div className="detail-panel-footer">

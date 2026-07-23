@@ -112,9 +112,32 @@ router.get('/mine/stats', protect, requireRole('recruiter'), async (req, res) =>
 // GET /api/jobs/:id
 router.get('/:id', async (req, res) => {
   try {
-    const job = await Job.findById(req.params.id).populate('postedBy', 'name');
+    const job = await Job.findById(req.params.id).populate('postedBy', 'name companyName bio');
     if (!job) return res.status(404).json({ message: 'Job not found' });
     res.json({ job });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// GET /api/jobs/:id/similar - a few other open roles in the same category/domain
+router.get('/:id/similar', async (req, res) => {
+  try {
+    const job = await Job.findById(req.params.id);
+    if (!job) return res.status(404).json({ message: 'Job not found' });
+
+    const orConditions = [];
+    if (job.category) orConditions.push({ category: job.category });
+    if (job.domain) orConditions.push({ domain: job.domain });
+
+    const filter = {
+      _id: { $ne: job._id },
+      status: 'open',
+      ...(orConditions.length > 0 ? { $or: orConditions } : {}),
+    };
+
+    const similar = await Job.find(filter).sort({ createdAt: -1 }).limit(4);
+    res.json({ jobs: similar });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
