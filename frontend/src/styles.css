@@ -35,7 +35,7 @@ a { text-decoration: none; color: inherit; }
 
 /* ---------- App shell (sidebar layout) ---------- */
 .app-shell { display: flex; min-height: 100vh; }
-.app-main { flex: 1; max-width: 1280px; margin: 0 auto; padding: 0 2rem; width: 100%; }
+.app-main { flex: 1; max-width: none; padding: 0 2.5rem; width: 100%; }
 
 .sidebar {
   width: var(--sidebar-w); flex-shrink: 0; border-right: 1px solid var(--border);
