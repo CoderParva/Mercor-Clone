@@ -519,6 +519,7 @@ a { text-decoration: none; color: inherit; }
 .detail-application-block { border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; margin: 1.25rem 0; }
 .detail-application-head { display: flex; justify-content: space-between; align-items: center; }
 .detail-application-head h3 { margin: 0; font-size: 1rem; }
+.detail-application-block .resume-hint { margin-top: 0.4rem; }
 .detail-step-rows { display: flex; flex-direction: column; gap: 0.6rem; margin: 0.9rem 0; }
 .detail-step-row { display: flex; justify-content: space-between; align-items: center; }
 .detail-step-row strong { display: block; font-size: 0.9rem; font-weight: 600; }
