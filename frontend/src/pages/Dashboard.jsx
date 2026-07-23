@@ -6,7 +6,11 @@ export default function Dashboard() {
   const { showToast } = useToast();
   const [jobs, setJobs] = useState([]);
   const [stats, setStats] = useState(null);
-  const [form, setForm] = useState({ title: '', description: '', category: '', payMin: '', payMax: '', skills: '' });
+  const [form, setForm] = useState({
+    title: '', description: '', category: '', payMin: '', payMax: '', skills: '',
+    responsibilities: '', requirements: '', preferredQualifications: '', whyJoin: '',
+    workArrangement: '', contractType: '', locations: '', domain: '', referralAmount: '',
+  });
   const [selectedJob, setSelectedJob] = useState(null);
   const [applicants, setApplicants] = useState([]);
   const [interviewsByCandidateId, setInterviewsByCandidateId] = useState({});
@@ -23,13 +27,30 @@ export default function Dashboard() {
   const createJob = async (e) => {
     e.preventDefault();
     try {
+      const lines = (v) => v.split('\n').map((x) => x.trim()).filter(Boolean);
+      const csv = (v) => v.split(',').map((x) => x.trim()).filter(Boolean);
       await api.post('/jobs', {
-        ...form,
+        title: form.title,
+        description: form.description,
+        category: form.category,
         payMin: Number(form.payMin),
         payMax: Number(form.payMax),
-        skills: form.skills.split(',').map((s) => s.trim()).filter(Boolean),
+        skills: csv(form.skills),
+        responsibilities: lines(form.responsibilities),
+        requirements: lines(form.requirements),
+        preferredQualifications: lines(form.preferredQualifications),
+        whyJoin: lines(form.whyJoin),
+        locations: csv(form.locations),
+        workArrangement: form.workArrangement,
+        contractType: form.contractType,
+        domain: form.domain,
+        referralAmount: Number(form.referralAmount) || 0,
       });
-      setForm({ title: '', description: '', category: '', payMin: '', payMax: '', skills: '' });
+      setForm({
+        title: '', description: '', category: '', payMin: '', payMax: '', skills: '',
+        responsibilities: '', requirements: '', preferredQualifications: '', whyJoin: '',
+        workArrangement: '', contractType: '', locations: '', domain: '', referralAmount: '',
+      });
       showToast('Role posted successfully', 'success');
       loadJobs();
       loadStats();
@@ -82,11 +103,44 @@ export default function Dashboard() {
           <input placeholder="Title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
           <input placeholder="Category" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} />
           <input placeholder="Skills (comma separated)" value={form.skills} onChange={(e) => setForm({ ...form, skills: e.target.value })} />
-          <textarea placeholder="Description" rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} required />
+          <textarea placeholder="Overview — a short intro paragraph about the role" rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} required />
+
           <div className="pay-row">
             <input type="number" placeholder="Pay min ($/hr)" value={form.payMin} onChange={(e) => setForm({ ...form, payMin: e.target.value })} required />
             <input type="number" placeholder="Pay max ($/hr)" value={form.payMax} onChange={(e) => setForm({ ...form, payMax: e.target.value })} required />
           </div>
+
+          <div className="pay-row">
+            <select value={form.workArrangement} onChange={(e) => setForm({ ...form, workArrangement: e.target.value })}>
+              <option value="">Work arrangement...</option>
+              <option value="remote">Remote</option>
+              <option value="hybrid">Hybrid</option>
+              <option value="onsite">Onsite</option>
+            </select>
+            <select value={form.contractType} onChange={(e) => setForm({ ...form, contractType: e.target.value })}>
+              <option value="">Contract type...</option>
+              <option value="hourly">Hourly contract</option>
+              <option value="fixed">Fixed price</option>
+              <option value="full-time">Full-time</option>
+              <option value="part-time">Part-time</option>
+            </select>
+          </div>
+
+          <div className="pay-row">
+            <input placeholder="Domain (e.g. Software engineering)" value={form.domain} onChange={(e) => setForm({ ...form, domain: e.target.value })} />
+            <input type="number" placeholder="Referral bonus ($)" value={form.referralAmount} onChange={(e) => setForm({ ...form, referralAmount: e.target.value })} />
+          </div>
+
+          <input placeholder="Locations (comma separated, e.g. India, United States)" value={form.locations} onChange={(e) => setForm({ ...form, locations: e.target.value })} />
+
+          <p className="resume-hint" style={{ margin: '0.5rem 0 0' }}>
+            For the sections below, put <strong>one bullet per line</strong> — they render as clean bulleted lists on the job page.
+          </p>
+          <textarea placeholder="Responsibilities — one per line" rows={4} value={form.responsibilities} onChange={(e) => setForm({ ...form, responsibilities: e.target.value })} />
+          <textarea placeholder="Requirements — one per line" rows={4} value={form.requirements} onChange={(e) => setForm({ ...form, requirements: e.target.value })} />
+          <textarea placeholder="Preferred qualifications — one per line" rows={3} value={form.preferredQualifications} onChange={(e) => setForm({ ...form, preferredQualifications: e.target.value })} />
+          <textarea placeholder="Why join — one per line" rows={3} value={form.whyJoin} onChange={(e) => setForm({ ...form, whyJoin: e.target.value })} />
+
           <button type="submit" className="btn primary">Post role</button>
         </form>
       </section>

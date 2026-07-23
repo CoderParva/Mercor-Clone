@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import GoogleLoginButton from '../components/GoogleLoginButton';
 
 export default function Register() {
   const { register } = useAuth();
@@ -42,6 +43,13 @@ export default function Register() {
           {submitting ? 'Creating account...' : 'Create account'}
         </button>
       </form>
+
+      <div className="auth-divider"><span>Or continue with</span></div>
+      <p className="resume-hint" style={{ textAlign: 'center', marginBottom: '0.5rem' }}>
+        Signing up as: <strong>{form.role}</strong> (change the dropdown above first if needed)
+      </p>
+      <GoogleLoginButton role={form.role} />
+
       <p>Already have an account? <Link to="/login">Log in</Link></p>
     </div>
   );

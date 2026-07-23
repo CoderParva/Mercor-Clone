@@ -2,6 +2,9 @@ import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api/axios';
 import AvatarStack from '../components/AvatarStack';
+import FilterDropdown from '../components/FilterDropdown';
+import JobDetailPanel from '../components/JobDetailPanel';
+import ApplicationModal from '../components/ApplicationModal';
 import { JobGridSkeleton } from '../components/Skeleton';
 
 const TABS = ['Project-based', 'One-time', 'Talent Network'];
@@ -16,9 +19,16 @@ export default function Explore() {
   const [q, setQ] = useState('');
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
+  const [facets, setFacets] = useState({});
+  const [selectedJobId, setSelectedJobId] = useState(null);
+  const [modalJob, setModalJob] = useState(null);
+  const [filters, setFilters] = useState({
+    minPay: '', location: '', domain: '', minReferral: '', workArrangement: '', contractType: '',
+  });
 
   useEffect(() => {
     api.get('/jobs/meta/categories').then((res) => setCategories(res.data.categories));
+    api.get('/jobs/meta/facets').then((res) => setFacets(res.data)).catch(() => {});
   }, []);
 
   const fetchJobs = useCallback(() => {
@@ -27,16 +37,24 @@ export default function Explore() {
     if (q) params.set('q', q);
     if (category) params.set('category', category);
     if (sort && sort !== 'newest') params.set('sort', sort);
+    Object.entries(filters).forEach(([k, v]) => {
+      if (v) params.set(k, v);
+    });
     api
       .get(`/jobs?${params.toString()}`)
       .then((res) => setJobs(res.data.jobs))
       .finally(() => setLoading(false));
-  }, [q, category, sort]);
+  }, [q, category, sort, filters]);
 
   useEffect(() => {
     fetchJobs();
     setPage(1);
-  }, [category, sort]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [category, sort, filters]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const updateFilter = (key, value) => setFilters((f) => ({ ...f, [key]: value }));
+  const clearFilters = () =>
+    setFilters({ minPay: '', location: '', domain: '', minReferral: '', workArrangement: '', contractType: '' });
+  const activeFilterEntries = Object.entries(filters).filter(([, v]) => v);
 
   const visibleJobs = tab === 'Project-based' ? jobs : [];
   const totalPages = Math.max(1, Math.ceil(visibleJobs.length / PAGE_SIZE));
@@ -74,21 +92,45 @@ export default function Explore() {
           <option value="payLow">Priority: Lowest pay</option>
         </select>
         <select value={category} onChange={(e) => setCategory(e.target.value)}>
-          <option value="">Filter: All categories</option>
+          <option value="">All categories</option>
           {categories.map((c) => (
             <option key={c} value={c}>{c}</option>
           ))}
         </select>
+        <FilterDropdown
+          facets={facets}
+          filters={filters}
+          onChange={updateFilter}
+          onClear={clearFilters}
+        />
         <Link to="/referrals" className="btn primary refer-btn">Refer &amp; earn</Link>
       </div>
 
+      {activeFilterEntries.length > 0 && (
+        <div className="active-filter-chips">
+          {activeFilterEntries.map(([k, v]) => (
+            <span className="active-chip" key={k}>
+              {k === 'minPay' ? `Min $${v}/hr` : k === 'minReferral' ? `Referral $${v}+` : v}
+              <button type="button" onClick={() => updateFilter(k, '')}>✕</button>
+            </span>
+          ))}
+        </div>
+      )}
+
+      <div className={`explore-split ${selectedJobId ? 'has-panel' : ''}`}>
+      <div className="explore-split-list">
       {loading ? (
         <JobGridSkeleton count={9} />
       ) : (
         <>
           <div className="explore-grid">
             {pageJobs.map((job) => (
-              <Link to={`/jobs/${job._id}`} key={job._id} className="explore-card">
+              <button
+                type="button"
+                key={job._id}
+                className={`explore-card ${selectedJobId === job._id ? 'selected' : ''}`}
+                onClick={() => setSelectedJobId(job._id)}
+              >
                 <div className="explore-card-top">
                   <h3>{job.title}</h3>
                   {job.applicantCount === 0 && <span className="new-op-badge">New opportunity</span>}
@@ -103,7 +145,7 @@ export default function Explore() {
                   </div>
                   <span className="applicant-count">👤 {job.applicantCount} applied</span>
                 </div>
-              </Link>
+              </button>
             ))}
           </div>
           {tab !== 'Project-based' && (
@@ -130,6 +172,18 @@ export default function Explore() {
           )}
         </>
       )}
+      </div>
+
+      {selectedJobId && (
+        <JobDetailPanel
+          jobId={selectedJobId}
+          onApply={(job) => setModalJob(job)}
+          onClose={() => setSelectedJobId(null)}
+        />
+      )}
+      </div>
+
+      {modalJob && <ApplicationModal job={modalJob} onClose={() => setModalJob(null)} />}
     </div>
   );
 }

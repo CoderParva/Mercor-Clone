@@ -17,7 +17,7 @@ const corsOptions = process.env.CORS_ORIGIN
   ? { origin: process.env.CORS_ORIGIN }
   : {};
 app.use(cors(corsOptions));
-app.use(express.json());
+app.use(express.json({ limit: '3mb' })); // raised from default 100kb to allow base64 avatar uploads
 
 // Basic brute-force protection on auth endpoints
 const authLimiter = rateLimit({

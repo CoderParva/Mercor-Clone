@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import JobDescription from '../components/JobDescription';
 
 export default function JobDetail() {
   const { id } = useParams();
@@ -42,7 +43,7 @@ export default function JobDetail() {
         </div>
       )}
       {job.hiresCount > 0 && <p className="hires-badge inline">{job.hiresCount} hired recently</p>}
-      <p className="job-description">{job.description}</p>
+      <JobDescription job={job} />
       <p className="posted-by">Posted by {job.postedBy?.name}</p>
 
       {user?.role === 'candidate' && !applied && (
