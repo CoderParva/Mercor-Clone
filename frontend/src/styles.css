@@ -776,3 +776,6 @@ a { text-decoration: none; color: inherit; }
 .similar-job-card:hover { box-shadow: var(--shadow-sm); border-color: var(--accent-border); }
 .similar-job-card strong { font-size: 0.85rem; }
 .similar-job-card .pay { color: var(--accent); font-size: 0.78rem; font-weight: 600; }
+
+/* ---------- Standalone job detail page: constrain reading width ---------- */
+.job-detail-page { max-width: 820px; }

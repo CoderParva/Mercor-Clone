@@ -34,7 +34,7 @@ export default function JobDetail() {
   if (!job) return <p className="center-msg">Loading...</p>;
 
   return (
-    <div className="page">
+    <div className="page job-detail-page">
       <h1>{job.title}</h1>
       <p className="pay">${job.payMin}-${job.payMax}/hr &middot; {job.category}</p>
       {job.skills?.length > 0 && (
