@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
 
@@ -6,6 +7,7 @@ const TABS = ['Contracts', 'Offers', 'Applications', 'Assessments', 'Saved'];
 
 export default function CandidateHome() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [tab, setTab] = useState('Applications');
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -17,13 +19,16 @@ export default function CandidateHome() {
       .finally(() => setLoading(false));
   }, []);
 
+  const linkedinHref = `${import.meta.env.VITE_API_URL || '/api'}/auth/linkedin?role=candidate`;
+
   const tasks = [
     {
       key: 'phone',
-      done: false,
+      done: !!user?.phoneVerified,
       title: 'Verify your phone number',
       body: 'You must have a valid phone number to use TalentMarket.',
       cta: 'Verify now',
+      onClick: () => navigate('/profile'),
     },
     {
       key: 'resume',
@@ -31,6 +36,15 @@ export default function CandidateHome() {
       title: 'Complete your profile',
       body: 'A complete profile boosts your chances of being matched with opportunities.',
       cta: 'Complete now',
+      onClick: () => navigate('/profile'),
+    },
+    {
+      key: 'linkedin',
+      done: user?.authProvider === 'linkedin',
+      title: 'Link LinkedIn',
+      body: 'Linking boosts your chances of being matched with opportunities.',
+      cta: 'Link now',
+      href: linkedinHref, // full-page redirect rather than a React navigation
     },
   ];
   const pendingTasks = tasks.filter((t) => !t.done);
@@ -47,7 +61,11 @@ export default function CandidateHome() {
               <div className="task-card" key={t.key}>
                 <h3>{t.title}</h3>
                 <p>{t.body}</p>
-                <button className="btn primary small">{t.cta}</button>
+                {t.href ? (
+                  <a href={t.href} className="btn primary small">{t.cta}</a>
+                ) : (
+                  <button className="btn primary small" onClick={t.onClick}>{t.cta}</button>
+                )}
               </div>
             ))}
           </div>

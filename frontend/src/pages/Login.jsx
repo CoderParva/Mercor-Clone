@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import GoogleLoginButton from '../components/GoogleLoginButton';
+import LinkedInLoginButton from '../components/LinkedInLoginButton';
 
 export default function Login() {
   const { login } = useAuth();
@@ -57,6 +58,7 @@ export default function Login() {
 
         <div className="auth-divider"><span>Or continue with</span></div>
         <GoogleLoginButton />
+        <LinkedInLoginButton />
       </div>
 
       <p className="auth-terms-note">

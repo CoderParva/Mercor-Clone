@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import GoogleLoginButton from '../components/GoogleLoginButton';
+import LinkedInLoginButton from '../components/LinkedInLoginButton';
 
 export default function Register() {
   const { register } = useAuth();
@@ -71,6 +72,7 @@ export default function Register() {
           Signing up as <strong>{form.role}</strong> — change the dropdown above first if needed.
         </p>
         <GoogleLoginButton role={form.role} />
+        <LinkedInLoginButton role={form.role} />
 
         <p className="auth-switch-line">
           Already have an account? <Link to="/login">Log in</Link>

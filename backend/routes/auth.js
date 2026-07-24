@@ -114,4 +114,86 @@ router.post('/google', async (req, res, next) => {
   }
 });
 
+// GET /api/auth/linkedin - redirects the browser to LinkedIn's authorization page.
+// LinkedIn (unlike Google) has no client-side button that hands back a token directly —
+// this is a full-page redirect flow: leave our site, approve on LinkedIn, come back with a code.
+router.get('/linkedin', (req, res) => {
+  if (!process.env.LINKEDIN_CLIENT_ID) {
+    return res.status(500).send('LinkedIn login is not configured on this server (missing LINKEDIN_CLIENT_ID).');
+  }
+  const role = req.query.role === 'recruiter' ? 'recruiter' : 'candidate';
+  const redirectUri = `${req.protocol}://${req.get('host')}/api/auth/linkedin/callback`;
+
+  const params = new URLSearchParams({
+    response_type: 'code',
+    client_id: process.env.LINKEDIN_CLIENT_ID,
+    redirect_uri: redirectUri,
+    scope: 'openid profile email',
+    state: role, // stash the intended role through the round trip
+  });
+
+  res.redirect(`https://www.linkedin.com/oauth/v2/authorization?${params.toString()}`);
+});
+
+// GET /api/auth/linkedin/callback - LinkedIn redirects here with a ?code=...
+// Exchange the code for an access token, fetch the user's profile, find/create the
+// user, issue our own JWT, then redirect back to the frontend with that JWT in the URL
+// (the frontend's OAuthCallback page picks it up and stores it).
+router.get('/linkedin/callback', async (req, res) => {
+  const frontendUrl = process.env.CORS_ORIGIN || 'http://localhost:5173';
+  try {
+    const { code, state } = req.query;
+    if (!code) {
+      return res.redirect(`${frontendUrl}/login?error=linkedin_no_code`);
+    }
+    const redirectUri = `${req.protocol}://${req.get('host')}/api/auth/linkedin/callback`;
+
+    const tokenRes = await fetch('https://www.linkedin.com/oauth/v2/accessToken', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        grant_type: 'authorization_code',
+        code,
+        redirect_uri: redirectUri,
+        client_id: process.env.LINKEDIN_CLIENT_ID,
+        client_secret: process.env.LINKEDIN_CLIENT_SECRET,
+      }),
+    });
+    const tokenData = await tokenRes.json();
+    if (!tokenData.access_token) {
+      console.error('LinkedIn token exchange failed:', tokenData);
+      return res.redirect(`${frontendUrl}/login?error=linkedin_token_exchange`);
+    }
+
+    const profileRes = await fetch('https://api.linkedin.com/v2/userinfo', {
+      headers: { Authorization: `Bearer ${tokenData.access_token}` },
+    });
+    const profile = await profileRes.json();
+    if (!profile.email) {
+      return res.redirect(`${frontendUrl}/login?error=linkedin_no_email`);
+    }
+
+    let user = await User.findOne({ email: profile.email.toLowerCase() });
+
+    if (!user) {
+      const randomPassword = crypto.randomBytes(32).toString('hex');
+      const role = state === 'recruiter' ? 'recruiter' : 'candidate';
+      user = await User.create({
+        name: profile.name || profile.email.split('@')[0],
+        email: profile.email,
+        password: randomPassword,
+        authProvider: 'linkedin',
+        avatarUrl: profile.picture || '',
+        role,
+      });
+    }
+
+    const jwtToken = signToken(user);
+    res.redirect(`${frontendUrl}/oauth/callback?token=${jwtToken}`);
+  } catch (err) {
+    console.error('LinkedIn callback error:', err);
+    res.redirect(`${frontendUrl}/login?error=linkedin_failed`);
+  }
+});
+
 module.exports = router;
