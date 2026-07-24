@@ -11,8 +11,6 @@ const { notFound, errorHandler } = require('./middleware/errorHandler');
 
 const app = express();
 
-const app = express();
-
 // Render (and most PaaS hosts) sit the app behind a reverse proxy that terminates
 // SSL — without this, Express's req.protocol always reports "http" even when the
 // real request came in over https, which breaks anything building an absolute URL
