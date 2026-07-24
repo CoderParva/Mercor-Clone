@@ -11,6 +11,14 @@ const { notFound, errorHandler } = require('./middleware/errorHandler');
 
 const app = express();
 
+const app = express();
+
+// Render (and most PaaS hosts) sit the app behind a reverse proxy that terminates
+// SSL — without this, Express's req.protocol always reports "http" even when the
+// real request came in over https, which breaks anything building an absolute URL
+// from req.protocol (like the LinkedIn OAuth redirect_uri in routes/auth.js).
+app.set('trust proxy', 1);
+
 // In production, set CORS_ORIGIN to your deployed frontend's URL (e.g. https://your-app.onrender.com).
 // Left unset, CORS allows all origins — fine for local dev, not recommended once deployed.
 const corsOptions = process.env.CORS_ORIGIN
