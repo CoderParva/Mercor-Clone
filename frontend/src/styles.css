@@ -561,7 +561,8 @@ a { text-decoration: none; color: inherit; }
 .modal-cancel { margin-top: 0.75rem; }
 
 /* ---------- Application steps page ---------- */
-.application-layout { display: grid; grid-template-columns: 290px minmax(0, 1fr); gap: 2.5rem; align-items: start; }
+.application-page { display: flex; flex-direction: column; min-height: calc(100vh - 3rem); }
+.application-layout { display: grid; grid-template-columns: 290px minmax(0, 1fr); gap: 2.5rem; align-items: start; flex: 1; }
 .application-sidebar {
   border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.25rem;
   position: sticky; top: 1rem;
@@ -599,8 +600,9 @@ a { text-decoration: none; color: inherit; }
 .application-cta-block .btn { margin-top: 1rem; }
 .application-reuse-note { margin-top: 1.5rem; }
 .application-footer {
-  display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 2.5rem;
-  border-top: 1px solid var(--border); padding-top: 1.25rem;
+  display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: auto;
+  border-top: 1px solid var(--border); padding: 1.25rem 0;
+  position: sticky; bottom: 0; background: var(--bg);
 }
 .application-footer .btn:disabled { opacity: 0.55; cursor: not-allowed; }
 
